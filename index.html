@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صور المعاملات | ستوديو مكتبة ماس</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- html2canvas for Exporting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* A4 aspect ratio sheet preview (210mm x 297mm) */
+        .a4-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            background-color: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+            padding: 10mm;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 3mm;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <div class="bg-white border-t-8 border-red-600 shadow-sm py-4 px-8 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 md:w-20 md:h-20 rounded-full border border-gray-200 overflow-hidden flex-shrink-0 bg-gray-50">
+                <img src="./logo.png.jpg" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Logo';"/>
+            </div>
+        </div>
+        <div class="text-center flex-grow">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">صور المعاملات</h1>
+            <h2 class="text-lg md:text-xl font-bold text-red-600 mt-1">ستوديو مكتبة ماس</h2>
+        </div>
+        <div class="w-16 md:w-20 hidden md:block"></div>
+    </div>
+
+    <!-- Main App Layout -->
+    <div class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6">
+        
+        <!-- Sidebar Controls -->
+        <div class="w-full md:w-80 flex flex-col gap-6 order-2 md:order-1">
+            
+            <!-- Instructions Card -->
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-800 mb-4 text-center">طريقة الاستخدام</h3>
+                <ul class="space-y-4">
+                    <li class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                        <div>
+                            <p class="font-semibold text-sm">1. ارفع الصور</p>
+                            <p class="text-xs text-gray-500">يمكنك رفع عدة صور مختلفة في نفس الوقت</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-layer-group"></i></div>
+                        <div>
+                            <p class="font-semibold text-sm">2. تخصيص كل صورة</p>
+                            <p class="text-xs text-gray-500">حدد عدد النسخ والمقاس لكل صورة بشكل منفصل</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-download"></i></div>
+                        <div>
+                            <p class="font-semibold text-sm">3. تحميل الصورة</p>
+                            <p class="text-xs text-gray-500">حمل ورقة A4 بجودة عالية جاهزة للطباعة</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Uploaded Photos List -->
+            <div id="gallery-card" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-gray-800 text-sm">الصور المرفوعة (<span id="photos-count">0</span>)</h3>
+                    <button onclick="triggerFileInput()" class="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> إضافة صورة
+                    </button>
+                </div>
+                <div id="photos-thumbnails" class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar"></div>
+            </div>
+
+            <!-- Selected Photo Controls -->
+            <div id="controls-card" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hidden">
+                <h3 class="font-bold text-gray-800 mb-4 text-center border-b pb-2">ضبط الصورة المحددة</h3>
+                
+                <!-- Copies & Dimension -->
+                <div class="mb-6 space-y-4 border-b pb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">عدد النسخ لهذه الصورة</label>
+                        <input type="number" id="input-copies" min="1" max="40" value="6" onchange="updateActivePhoto('copies', parseInt(this.value) || 1)" class="w-full text-center border rounded-lg py-2 font-bold text-red-600 focus:outline-none focus:ring-1 focus:ring-red-500" />
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="w-1/2">
+                            <label class="block text-xs font-semibold text-gray-700 mb-2">العرض (سم)</label>
+                            <input type="number" step="0.1" id="input-width" value="3" onchange="updateGlobalDimension('width', parseFloat(this.value) || 3)" class="w-full text-center border rounded-lg py-2 focus:outline-none focus:ring-1 focus:ring-red-500" />
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-xs font-semibold text-gray-700 mb-2">الارتفاع (سم)</label>
+                            <input type="number" step="0.1" id="input-height" value="4" onchange="updateGlobalDimension('height', parseFloat(this.value) || 4)" class="w-full text-center border rounded-lg py-2 focus:outline-none focus:ring-1 focus:ring-red-500" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zoom -->
+                <div class="mb-6">
+                    <p class="text-xs font-semibold text-gray-700 mb-2">تكبير / تصغير</p>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeZoom(-5)" class="w-10 h-10 border rounded-lg hover:bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-minus"></i></button>
+                        <input type="text" id="zoom-text" readonly value="100%" class="flex-1 text-center border rounded-lg py-2 bg-gray-50 font-semibold" />
+                        <button onclick="changeZoom(5)" class="w-10 h-10 border rounded-lg hover:bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <input type="range" id="zoom-range" min="10" max="300" value="100" oninput="updateActivePhoto('zoom', parseInt(this.value))" class="w-full mt-3 accent-red-600 cursor-pointer" />
+                </div>
+
+                <!-- Pan / Navigation -->
+                <div class="mb-6">
+                    <p class="text-xs font-semibold text-gray-700 mb-2 text-center">تحريك الصورة</p>
+                    <div class="flex justify-center">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div></div>
+                            <button onclick="changePan('panY', 5)" class="w-10 h-10 border rounded-lg hover:bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-arrow-up"></i></button>
+                            <div></div>
+                            <button onclick="changePan('panX', 5)" class="w-10 h-10 border rounded-lg hover:bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-arrow-right"></i></button>
+                            <button onclick="resetPan()" class="w-10 h-10 border rounded-lg hover:bg-gray-50 flex items-center justify-center text-xs" title="مركزة"><i class="fa-solid fa-circle text-gray-300"></i></button>
+                            <button onclick="changePan('panX', -5)" class="w-10 h-10 border rounded-lg hover:bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button>
+                            <div></div>
+                            <button onclick="changePan('panY', -5)" class="w-10 h-10 border rounded-lg hover:bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-arrow-down"></i></button>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rotate -->
+                <div class="mb-6">
+                    <p class="text-xs font-semibold text-gray-700 mb-2">تدوير</p>
+                    <div class="flex gap-2">
+                        <button onclick="changeRotate(-90)" class="flex-1 py-2 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 text-xs font-semibold"><i class="fa-solid fa-rotate-left"></i> يسار</button>
+                        <button onclick="changeRotate(90)" class="flex-1 py-2 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 text-xs font-semibold"><i class="fa-solid fa-rotate-right"></i> يمين</button>
+                    </div>
+                </div>
+
+                <button onclick="resetCurrentPhoto()" class="w-full py-2.5 border border-red-500 text-red-600 font-semibold rounded-lg hover:bg-red-50 transition text-sm">
+                    إعادة تعيين ضبط هذه الصورة
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview & Output Area -->
+        <div class="flex-grow flex flex-col order-1 md:order-2">
+            <div class="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 flex-grow flex flex-col items-center justify-center">
+                
+                <input type="file" id="file-input" class="hidden" multiple accept="image/png, image/jpeg, image/jpg" onchange="handleFilesUpload(event)" />
+
+                <!-- Empty State Upload Box -->
+                <div id="upload-box" class="w-full border-2 border-dashed border-red-400 rounded-xl bg-red-50/50 flex flex-col items-center justify-center p-12 cursor-pointer hover:bg-red-50 transition min-h-[450px]" onclick="triggerFileInput()">
+                    <div class="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl mb-4">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">اضغط للاختيار أو اسحب الصور هنا</h3>
+                    <p class="text-gray-500 text-sm mb-4">يمكنك تحديد صورة أو عدة صور معاً</p>
+                    <span class="text-xs bg-red-600 text-white px-5 py-2.5 rounded-lg font-bold">رفع صور جديدة</span>
+                </div>
+
+                <!-- Sheet Preview Container -->
+                <div id="preview-section" class="w-full hidden flex flex-col items-center">
+                    <div class="flex justify-between items-center w-full mb-4">
+                        <h3 class="font-bold text-gray-800">
+                            معاينة ورقة A4 (<span id="total-copies-count">0</span> صورة إجمالاً)
+                        </h3>
+                        <button onclick="triggerFileInput()" class="text-sm bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> إضافة صورة أخرى
+                        </button>
+                    </div>
+
+                    <div class="w-full flex justify-center bg-gray-200 p-4 rounded-xl overflow-x-auto">
+                        <div id="a4-sheet" class="a4-sheet"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Button Bar -->
+            <div id="export-bar" class="bg-white rounded-xl p-4 mt-6 shadow-sm border border-gray-100 hidden flex justify-center">
+                <button id="download-btn" onclick="downloadHighQualityImage()" class="w-full md:w-auto px-10 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg transition shadow-md flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-download text-xl"></i>
+                    <span id="download-text">تحميل صورة الجودة العالية</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // Global State
+        let photos = [];
+        let selectedPhotoId = null;
+        let widthCm = 3;
+        let heightCm = 4;
+
+        function triggerFileInput() {
+            document.getElementById('file-input').click();
+        }
+
+        function handleFilesUpload(e) {
+            const files = Array.from(e.target.files);
+            if (!files || files.length === 0) return;
+
+            let loadedCount = 0;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const newPhoto = {
+                        id: Date.now() + Math.random(),
+                        src: event.target.result,
+                        copies: 6,
+                        zoom: 100,
+                        panX: 0,
+                        panY: 0,
+                        rotate: 0
+                    };
+                    photos.push(newPhoto);
+                    loadedCount++;
+
+                    if (loadedCount === files.length) {
+                        if (!selectedPhotoId) {
+                            selectedPhotoId = photos[0].id;
+                        }
+                        render();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+            // Reset input so same files can be re-uploaded if needed
+            e.target.value = '';
+        }
+
+        function selectPhoto(id) {
+            selectedPhotoId = id;
+            render();
+        }
+
+        function removePhoto(id, event) {
+            event.stopPropagation();
+            photos = photos.filter(p => p.id !== id);
+            if (selectedPhotoId === id) {
+                selectedPhotoId = photos.length > 0 ? photos[0].id : null;
+            }
+            render();
+        }
+
+        function getActivePhoto() {
+            return photos.find(p => p.id === selectedPhotoId);
+        }
+
+        function updateActivePhoto(key, value) {
+            const active = getActivePhoto();
+            if (!active) return;
+            active[key] = value;
+            render();
+        }
+
+        function updateGlobalDimension(type, val) {
+            if (type === 'width') widthCm = val;
+            if (type === 'height') heightCm = val;
+            render();
+        }
+
+        function changeZoom(delta) {
+            const active = getActivePhoto();
+            if (!active) return;
+            active.zoom = Math.min(300, Math.max(10, active.zoom + delta));
+            render();
+        }
+
+        function changePan(axis, delta) {
+            const active = getActivePhoto();
+            if (!active) return;
+            active[axis] += delta;
+            render();
+        }
+
+        function resetPan() {
+            const active = getActivePhoto();
+            if (!active) return;
+            active.panX = 0;
+            active.panY = 0;
+            render();
+        }
+
+        function changeRotate(deg) {
+            const active = getActivePhoto();
+            if (!active) return;
+            active.rotate += deg;
+            render();
+        }
+
+        function resetCurrentPhoto() {
+            const active = getActivePhoto();
+            if (!active) return;
+            active.zoom = 100;
+            active.panX = 0;
+            active.panY = 0;
+            active.rotate = 0;
+            render();
+        }
+
+        // Render UI Function
+        function render() {
+            const uploadBox = document.getElementById('upload-box');
+            const previewSection = document.getElementById('preview-section');
+            const galleryCard = document.getElementById('gallery-card');
+            const controlsCard = document.getElementById('controls-card');
+            const exportBar = document.getElementById('export-bar');
+
+            if (photos.length === 0) {
+                uploadBox.classList.remove('hidden');
+                previewSection.classList.add('hidden');
+                galleryCard.classList.add('hidden');
+                controlsCard.classList.add('hidden');
+                exportBar.classList.add('hidden');
+                return;
+            }
+
+            uploadBox.classList.add('hidden');
+            previewSection.classList.remove('hidden');
+            galleryCard.classList.remove('hidden');
+            controlsCard.classList.remove('hidden');
+            exportBar.classList.remove('hidden');
+
+            // 1. Gallery thumbnails
+            document.getElementById('photos-count').innerText = photos.length;
+            const thumbnailsContainer = document.getElementById('photos-thumbnails');
+            thumbnailsContainer.innerHTML = '';
+
+            photos.forEach((photo) => {
+                const isSelected = photo.id === selectedPhotoId;
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = `relative w-16 h-16 rounded-lg border-2 flex-shrink-0 cursor-pointer overflow-hidden transition-all ${isSelected ? 'border-red-600 ring-2 ring-red-100' : 'border-gray-200'}`;
+                thumbDiv.onclick = () => selectPhoto(photo.id);
+
+                thumbDiv.innerHTML = `
+                    <img src="${photo.src}" class="w-full h-full object-cover" />
+                    <button onclick="removePhoto(${photo.id}, event)" class="absolute top-0.5 right-0.5 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] hover:bg-red-700">✕</button>
+                    <span class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] text-center font-bold">${photo.copies}x</span>
+                `;
+                thumbnailsContainer.appendChild(thumbDiv);
+            });
+
+            // 2. Control Values Update
+            const active = getActivePhoto();
+            if (active) {
+                document.getElementById('input-copies').value = active.copies;
+                document.getElementById('input-width').value = widthCm;
+                document.getElementById('input-height').value = heightCm;
+                document.getElementById('zoom-text').value = `${active.zoom}%`;
+                document.getElementById('zoom-range').value = active.zoom;
+            }
+
+            // 3. Render A4 Sheet Items
+            const a4Sheet = document.getElementById('a4-sheet');
+            a4Sheet.innerHTML = '';
+            
+            let totalCopies = 0;
+
+            photos.forEach((photo) => {
+                for (let i = 0; i < photo.copies; i++) {
+                    totalCopies++;
+                    const isSelected = photo.id === selectedPhotoId;
+
+                    const photoBox = document.createElement('div');
+                    photoBox.onclick = () => selectPhoto(photo.id);
+                    photoBox.className = `cursor-pointer transition-all ${isSelected ? 'ring-2 ring-red-500 z-10' : ''}`;
+                    
+                    // Fixed exact aspect-ratio and scale according to A4 dimensions (210mm x 297mm)
+                    photoBox.style.width = `${(widthCm / 21) * 100}%`;
+                    photoBox.style.height = `${(heightCm / 29.7) * 100}%`;
+                    photoBox.style.position = 'relative';
+                    photoBox.style.overflow = 'hidden';
+                    photoBox.style.border = '1px dashed #cbd5e1';
+                    photoBox.style.backgroundColor = '#ffffff';
+                    photoBox.style.boxSizing = 'border-box';
+                    photoBox.style.display = 'flex';
+                    photoBox.style.alignItems = 'center';
+                    photoBox.style.justifyContent = 'center';
+
+                    const imgWrapper = document.createElement('div');
+                    imgWrapper.style.width = '100%';
+                    imgWrapper.style.height = '100%';
+                    imgWrapper.style.display = 'flex';
+                    imgWrapper.style.alignItems = 'center';
+                    imgWrapper.style.justifyContent = 'center';
+                    imgWrapper.style.overflow = 'hidden';
+
+                    const img = document.createElement('img');
+                    img.src = photo.src;
+                    // Preserve natural image proportions without stretching/distorting
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '100%';
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover'; 
+                    img.style.transform = `scale(${photo.zoom / 100}) translate(${photo.panX}%, ${photo.panY}%) rotate(${photo.rotate}deg)`;
+                    img.style.transformOrigin = 'center';
+                    img.style.transition = 'transform 0.1s ease-out';
+
+                    imgWrapper.appendChild(img);
+                    photoBox.appendChild(imgWrapper);
+                    a4Sheet.appendChild(photoBox);
+                }
+            });
+
+            document.getElementById('total-copies-count').innerText = totalCopies;
+        }
+
+        // Export Function
+        function downloadHighQualityImage() {
+            if (photos.length === 0) return;
+
+            const btn = document.getElementById('download-btn');
+            const text = document.getElementById('download-text');
+            
+            btn.disabled = true;
+            text.innerText = 'جاري تحضير الصورة...';
+
+            const element = document.getElementById('a4-sheet');
+
+            html2canvas(element, { scale: 3, useCORS: true }).then((canvas) => {
+                const link = document.createElement('a');
+                link.download = 'photos-mas-studio.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 1.0);
+                link.click();
+
+                btn.disabled = false;
+                text.innerText = 'تحميل صورة الجودة العالية';
+            }).catch(() => {
+                btn.disabled = false;
+                text.innerText = 'تحميل صورة الجودة العالية';
+                alert('حدث خطأ أثناء تصدير الصورة');
+            });
+        }
+    </script>
+</body>
+</html>
